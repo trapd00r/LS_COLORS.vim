@@ -1,0 +1,30 @@
+## LS_COLORS.vim
+
+A syntax file for Vim that highlights a buffer according to the definition of
+**your** [$LS\_COLORS](https://github.com/trapd00r/LS_COLORS) variable.
+
+Can be useful in various places where a file listing is expected:
+
+* When editing `MANIFEST` or `gitignore` files
+* While managing your [files](https://github.com/trapd00r/vidir)
+* In the `quickfix` window when using `:Scriptnames` from [scriptease.vim](https://github.com/tpope/vim-scriptease)
+
+
+### Installation
+
+vim-plug:
+
+```vim
+Plug 'trapd00r/LS_COLORS.vim'
+```
+
+### Screenshot
+
+![screenshot](./extra/screenshot.png?raw=true)
+
+### Related projects
+
+* The largest [LS_COLORS](https://github.com/trapd00r/LS_COLORS) project on the planet
+
+* Perl [library](https://github.com/trapd00r/File::LsColor) for colorizing input filenames just like ls does in
+
