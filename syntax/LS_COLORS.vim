@@ -11,40 +11,83 @@ if exists('b:current_syntax')
   finish
 endif
 
+function! <SID>MakeColor3bit(clr, bright)
+  let l:clr3bit_string = ''
+  if a:clr <=38
+    let color = a:clr-30 + a:bright*8
+    let l:clr3bit_string = ' ctermfg='.l:color
+          \ .' guifg='.s:term2rgb[substitute(l:color, '^0\+\ze\S', '', '')]
+  else
+    let color = a:clr-40 + a:bright*8
+    let l:clr3bit_string = ' ctermbg='.l:color
+          \ .' guibg='.s:term2rgb[substitute(l:color, '^0\+\ze\S', '', '')]
+  endif
+  return l:clr3bit_string
+endfunction
+
+function! <SID>MakeColor8bit(where, clr)
+  let l:clr8bit_string = ''
+  if a:where == 38
+    let l:clr8bit_string = ' ctermfg='.a:clr
+          \ .' guifg='.s:term2rgb[substitute(a:clr, '^0\+\ze\S', '', '')]
+  elseif a:where == 48
+    let l:clr8bit_string = ' ctermbg='.a:clr
+          \ .' guibg='.s:term2rgb[substitute(a:clr, '^0\+\ze\S', '', '')]
+  endif
+  return l:clr8bit_string
+endfunction
+
+function! <SID>MakeColor24bit(where, red, green, blue)
+  " TODO calculate an approximation of palette colors for cterm
+  let l:clr24bit_string = ''
+  if a:where == 38
+    let l:clr24bit_string = printf(' guifg=#%02x%02x%02x', a:red, a:green, a:blue)
+  elseif a:where == 48
+    let l:clr24bit_string = printf(' guibg=#%02x%02x%02x', a:red, a:green, a:blue)
+  endif
+  return l:clr24bit_string
+endfunction
+
+function! <SID>MakeAnsiStyle(style)
+  if a:style ==# '0' || a:style ==# '00'
+    return 'none'
+  elseif a:style ==# '1' || a:style ==# '01'
+    return 'bold'
+  elseif a:style ==# '3' || a:style ==# '03'
+    return 'italic'
+  elseif a:style ==# '4' || a:style ==# '04'
+    return 'underline'
+  elseif a:style ==# '7' || a:style ==# '07'
+    return 'reverse'
+  elseif a:style ==# '9' || a:style ==# '09'
+    return 'strikethrough'
+  elseif a:style ==# '21'
+    return 'underdouble'
+  endif
+endfunction
+
 function! <SID>MakeStyle(ls_color_style)
   let l:style_settings = split(a:ls_color_style, ';')
-
+  let l:bright = count(l:style_settings, '1') + count(l:style_settings, '01')
   let l:style_string = ''
+  let l:ansi_style_array = []
 
-  while len(l:style_settings) >= 3
-    let [l:where, l:flag, l:clr; l:style_settings] = l:style_settings
-
-    if l:flag == 5
-      if l:where == 38
-        let l:style_string .= ' ctermfg='.l:clr
-              \ .' guifg='.s:term2rgb[substitute(l:clr, '^0\+\ze\S', '', '')]
-      elseif l:where == 48
-        let l:style_string .= ' ctermbg='.l:clr
-              \ .' guibg='.s:term2rgb[substitute(l:clr, '^0\+\ze\S', '', '')]
-      endif
+  while len(l:style_settings) >= 1
+    if len(l:style_settings) >= 3 && l:style_settings[1] == 5 && ( l:style_settings[0] == 38 || l:style_settings[0] == 48 )
+      let [l:where, l:flag, l:clr; l:style_settings] = l:style_settings
+      let l:style_string .= <SID>MakeColor8bit(l:where, l:clr)
+    elseif len(l:style_settings) >= 5 && l:style_settings[1] == 2 && ( l:style_settings[0] == 38 || l:style_settings[0] == 48 )
+      let [l:where, l:flag, l:clr_r, l:clr_g, l:clr_b; l:style_settings] = l:style_settings
+      let l:style_string .= <SID>MakeColor24bit(l:where, l:clr_r, l:clr_g, l:clr_b)
+    elseif ( l:style_settings[0] >= 30 && l:style_settings[0] <= 37 ) || ( l:style_settings[0] >= 40 && l:style_settings[0] <= 47 )
+      let [l:clr; l:style_settings] = l:style_settings
+      let l:style_string .= <SID>MakeColor3bit(l:clr, l:bright)
+    else
+      let [l:style; l:style_settings] = l:style_settings
+      call add(l:ansi_style_array, <SID>MakeAnsiStyle(l:style))
     endif
   endwhile
-
-  if len(l:style_settings) == 1
-    let l:style = l:style_settings[0]
-
-    if l:style == '0' || l:style == '00'
-      let l:style_string .= ' cterm=none'
-    elseif l:style == '1' || l:style == '01'
-      let l:style_string .= ' cterm=bold'
-    elseif l:style == '3' || l:style == '03'
-      let l:style_string .= ' cterm=italic'
-    elseif l:style == '4' || l:style == '04'
-      let l:style_string .= ' cterm=underline'
-    elseif l:style == '7' || l:style == '07'
-      let l:style_string .= ' cterm=reverse'
-    endif
-  end
+  let l:style_string .= ' cterm=' . join(l:ansi_style_array, ',')
 
   return l:style_string
 endfunction
